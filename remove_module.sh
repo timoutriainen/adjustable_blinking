@@ -1,0 +1,2 @@
+sudo rmmod adjustable_blinking
+dmesg
