@@ -156,6 +156,7 @@ int getOnOff(const char *buf) {
 static ssize_t led_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count) {
     long newDelay = 0;
     int newBlinkingOn = 0;
+    unsigned long delayInJiffies = delay / 10;
     printk(KERN_DEBUG "led_store() - Led store called, buf %s\n", buf);
     if(kstrtol(buf, 10, &newDelay)) {
         printk(KERN_DEBUG "led_store() - buf contains no number, checking string\n");
@@ -163,7 +164,7 @@ static ssize_t led_store(struct device *dev, struct device_attribute *attr, cons
         if(newBlinkingOn != -1) {
             blinking_on = newBlinkingOn;
             if(blinking_on == 1 ) {
-                queue_delayed_work(my_wq, (struct delayed_work *)delayed_work,delay);
+                queue_delayed_work(my_wq, (struct delayed_work *)delayed_work, delayInJiffies);
 		        printk(KERN_DEBUG "led_blink_delayed_function() - Submitted delayed work at %ld jiffies\n",jiffies);
 
             } else {
@@ -172,14 +173,13 @@ static ssize_t led_store(struct device *dev, struct device_attribute *attr, cons
         }
     } else {
         printk(KERN_DEBUG "led_store() - buf contains valid number %ld, using it as a delay\n", newDelay);
-        delay = validateNewDelay(newDelay)/10;
+        delay = validateNewDelay(newDelay);
     }
-
-    
     return count;
 }
 
 void led_blink_delayed_function(struct work_struct *work) {
+    unsigned long delayInJiffies = delay / 10;
     printk(KERN_DEBUG "led_blink_delayed_function()\n");
     if(led_on == 0 ) {
         printk(KERN_DEBUG "led_blink_delayed_function() - setting led_on to 1\n");
@@ -189,7 +189,7 @@ void led_blink_delayed_function(struct work_struct *work) {
         led_on = 0;
     }
     if(blinking_on == 1) {
-        queue_delayed_work(my_wq, (struct delayed_work *)delayed_work,delay);
+        queue_delayed_work(my_wq, (struct delayed_work *)delayed_work, delayInJiffies);
 		printk(KERN_DEBUG "led_blink_delayed_function() - Submitted delayed work at %ld jiffies\n",jiffies);
     } else {
         printk(KERN_DEBUG "led_blink_delayed_function() - turning led off\n");
